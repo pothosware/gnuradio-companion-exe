@@ -27,3 +27,10 @@ add_executable(gnuradio-companion WIN32 gnuradio-companion.cpp ${RES_FILES})
 install(
     TARGETS gnuradio-companion
     RUNTIME DESTINATION bin)
+
+########################################################################
+# Install gnuradio helper script
+########################################################################
+install(
+    PROGRAMS GNURadioHelper.py
+    DESTINATION bin)

@@ -10,6 +10,14 @@
 #include <vector>
 
 /***********************************************************************
+ * True if a file path exists
+ **********************************************************************/
+const bool fileExists(const std::string &path)
+{
+    return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES;
+}
+
+/***********************************************************************
  * Extract the python 2.7 install path from the registry
  **********************************************************************/
 static std::string getPython27ExePath(void)
@@ -37,8 +45,7 @@ static std::string getPython27ExePath(void)
         "\nPossible Python 2.7 install issue.");
 
     const std::string pythonPath = std::string(pathStr) + "\\python.exe";
-    DWORD fileAtt = GetFileAttributesA(pythonPath.c_str());
-    if (fileAtt == INVALID_FILE_ATTRIBUTES) throw std::runtime_error(pythonPath + " does not exist!");
+    if (not fileExists(pythonPath)) throw std::runtime_error(pythonPath + " does not exist!");
 
     return pythonPath;
 }
@@ -46,14 +53,14 @@ static std::string getPython27ExePath(void)
 /***********************************************************************
  * Extract executable path to locate scripts
  **********************************************************************/
-static std::string getGnuradioCompanionPath(void)
+static std::string getExeDirectoryPath(void)
 {
     char path[MAX_PATH];
     HMODULE hm = NULL;
     if (not GetModuleHandleExA(
         GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
         GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-        (LPCSTR) &getGnuradioCompanionPath, &hm)
+        (LPCSTR) &getExeDirectoryPath, &hm)
     )
         throw std::runtime_error("Failed to get handle to this executable!");
 
@@ -63,21 +70,14 @@ static std::string getGnuradioCompanionPath(void)
     const std::string exePath(path, size);
     const size_t slashPos = exePath.find_last_of("/\\");
     if (slashPos == std::string::npos) throw std::runtime_error(
-        "Failed to parse directory path of this executable!"
-        "\n'"+exePath+"'");
-
-    const auto grcPath = exePath.substr(0, slashPos) + "\\gnuradio-companion.py";
-    DWORD fileAtt = GetFileAttributesA(grcPath.c_str());
-    if (fileAtt == INVALID_FILE_ATTRIBUTES) throw std::runtime_error(grcPath + " does not exist!"
-        "\nPossible installation issue.");
-
-    return grcPath;
+        "Failed to parse directory path of this executable!");
+    return exePath.substr(0, slashPos);
 }
 
 /***********************************************************************
  * Helper to execute a process and wait for completion
  **********************************************************************/
-const int execProcess(const std::vector<std::string> &args, const DWORD flags)
+const int execProcess(const std::vector<std::string> &args, const DWORD flags = 0)
 {
     std::string command;
     for (const auto &arg : args)
@@ -127,10 +127,12 @@ int main(int argc, char **argv)
     }
 
     //extract gnuradio companion path
-    std::string grcPy;
+    std::string grcPath;
     try
     {
-        grcPy = getGnuradioCompanionPath();
+        grcPath = getExeDirectoryPath() + "\\gnuradio-companion.py";
+        if (not fileExists(grcPath)) throw std::runtime_error(grcPath + " does not exist!"
+            "\nPossible installation issue.");
     }
     catch (const std::exception &ex)
     {
@@ -139,13 +141,15 @@ int main(int argc, char **argv)
     }
 
     //execute gnuradio companion with args
+    int exitCode = EXIT_SUCCESS;
     try
     {
         std::vector<std::string> args;
         args.push_back(pythonExe);
-        args.push_back(grcPy);
+        args.push_back(grcPath);
         for (size_t i = 1; i < argc; i++) args.push_back(argv[i]);
-        return execProcess(args, CREATE_NO_WINDOW);
+        exitCode = execProcess(args, CREATE_NO_WINDOW);
+        if (exitCode == 0) return 0;
     }
     catch (const std::exception &ex)
     {
@@ -153,5 +157,25 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    return EXIT_SUCCESS;
+    //on failure, execute the gnuradio helper
+    int ret = MessageBox(nullptr,
+        "Would you like to run GNURadioHelper.py to inspect the installation and attempt to fix the problem?",
+        "Gnuradio Companion exited with error!", MB_YESNO | MB_ICONQUESTION);
+
+    if (ret == IDYES) try
+    {
+        const std::string gnuradioHelper = getExeDirectoryPath() + "\\GNURadioHelper.py";
+        if (not fileExists(gnuradioHelper)) throw std::runtime_error("Gnuradio Helper script missing: " + gnuradioHelper);
+        std::vector<std::string> args;
+        args.push_back(pythonExe);
+        args.push_back(gnuradioHelper);
+        return execProcess(args);
+    }
+    catch (const std::exception &ex)
+    {
+        MessageBox(nullptr, ex.what(), "Gnuradio Helper script failed!", MB_OK | MB_ICONERROR);
+        return EXIT_FAILURE;
+    }
+
+    return exitCode;
 }
