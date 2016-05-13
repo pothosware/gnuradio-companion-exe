@@ -34,3 +34,10 @@ install(
 install(
     PROGRAMS GNURadioHelper.py
     DESTINATION bin)
+
+########################################################################
+# Install icon for shell association
+########################################################################
+install(
+    FILES grc-icon-256.ico
+    DESTINATION share/gnuradio/icons)
