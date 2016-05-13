@@ -143,6 +143,16 @@ def handle_import_gtk():
 ########################################################################
 ## GNU Radio checks
 ########################################################################
+def guess_bin_path():
+
+    #was it run from the proper install directory?
+    path = os.path.abspath(os.path.dirname(__file__))
+    if os.path.exists(os.path.join(path, "gnuradio-runtime.dll")): return path
+
+    #otherwise search the path to find the root
+    gnuradio_runtime = find_library("gnuradio-runtime.dll")
+    if gnuradio_runtime: return gnuradio_runtime
+
 def check_gr_runtime():
     gnuradio_runtime = find_library("gnuradio-runtime.dll")
 
@@ -152,9 +162,31 @@ def check_gr_runtime():
     return gnuradio_runtime
 
 def handle_gr_runtime():
-    print("Error: PothosSDR missing from system path")
-    print("  see https://github.com/pothosware/PothosSDR/wiki/Tutorial")
-    return -1
+
+    path = guess_bin_path()
+
+    #we dont know where the bin path is, this is probably an installer issue
+    #print this message and return error so other handlers are not invoked
+    if path is None:
+        print("Error: PothosSDR DLLs missing from the system path")
+        print("  See instructions to 'Add PothosSDR to the system PATH'")
+        print("  https://github.com/pothosware/PothosSDR/wiki/Tutorial")
+        return -1
+
+    e = Environment()
+    PATH = e.get('PATH', '')
+    print("Current PATH: '%s'"%PATH)
+    if not PATH: PATH = list()
+    else: PATH = PATH.split(';')
+
+    if path not in PATH:
+        print("Adding %s to the PATH"%path)
+        PATH.append(path)
+        e.set('PATH', ';'.join(PATH))
+
+    print("")
+    print("The PATH for the current user has been modified")
+    print("Open a new command window and re-run this script...")
 
 def check_import_gr():
     import gnuradio
@@ -162,7 +194,7 @@ def check_import_gr():
     return inspect.getfile(gnuradio)
 
 def handle_import_gr():
-    binDir = os.path.dirname(find_library("gnuradio-runtime.dll"))
+    binDir = guess_bin_path()
     path = os.path.join(os.path.dirname(binDir), 'lib', 'python2.7', 'site-packages')
     if not os.path.exists(path): #or use old-style path without python version
         path = os.path.join(os.path.dirname(binDir), 'lib', 'site-packages')
@@ -188,7 +220,6 @@ def handle_import_gr():
     print("")
     print("The PYTHONPATH for the current user has been modified")
     print("Open a new command window and re-run this script...")
-    return -1
 
 def check_grc_blocks_path():
     GRC_BLOCKS_PATH = os.environ.get('GRC_BLOCKS_PATH', '')
@@ -201,7 +232,7 @@ def check_grc_blocks_path():
     return GRC_BLOCKS_PATH
 
 def handle_grc_blocks_path():
-    binDir = os.path.dirname(find_library("gnuradio-runtime.dll"))
+    binDir = guess_bin_path()
     path = os.path.join(os.path.dirname(binDir), 'share', 'gnuradio', 'grc', 'blocks')
     path = os.path.normpath(path)
 
@@ -212,7 +243,6 @@ def handle_grc_blocks_path():
     print("")
     print("The GRC_BLOCKS_PATH for the current user has been modified")
     print("Open a new command window and re-run this script...")
-    return -1
 
 ########################################################################
 ## Other module checks
