@@ -60,12 +60,12 @@ class Environment(object):
 ########################################################################
 ## Pip helpers
 ########################################################################
-PIP_EXE = "%s"%os.path.join(os.path.dirname(sys.executable), 'Scripts', 'pip.exe')
+PIP_EXE = os.path.join(os.path.dirname(sys.executable), 'Scripts', 'pip.exe')
 
-def pip_install_url(url):
-    ret = os.system("%s install %s"%(PIP_EXE, url))
+def pip_install(arg):
+    ret = os.system('"%s" install "%s"'%(PIP_EXE, arg))
     if ret != 0:
-        print("Error: pip failed to install %s"%url)
+        print("Error: pip failed to install %s"%arg)
         return -1
 
 ########################################################################
@@ -108,7 +108,7 @@ def handle_gtk_runtime():
 
         #need requests to download the exe
         try: import requests
-        except: os.system("%s install requests"%PIP_EXE)
+        except: pip_install("requests")
         import requests
 
         #download from the url to the destination
@@ -123,7 +123,7 @@ def handle_gtk_runtime():
         return -1
 
     print("Running installer: %s"%GTK_EXE)
-    ret = os.system("%s /S"%GTK_EXE) #silent install
+    ret = os.system('"%s" /S'%GTK_EXE) #silent install
     if ret != 0:
         print("The GTK installer failed with exit code %d"%ret)
         exit(ret)
@@ -136,9 +136,9 @@ def check_import_gtk():
     return inspect.getfile(gtk)
 
 def handle_import_gtk():
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/pygtk-2.22.0-cp27-none-win_amd64.whl')
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/pygobject-2.28.6-cp27-none-win_amd64.whl')
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/pycairo_gtk-1.10.0-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pygtk-2.22.0-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pygobject-2.28.6-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pycairo_gtk-1.10.0-cp27-none-win_amd64.whl')
 
 ########################################################################
 ## GNU Radio checks
@@ -252,21 +252,21 @@ def check_import_numpy():
     return inspect.getfile(numpy)
 
 def handle_import_numpy():
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/numpy-1.9.3+vanilla-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/numpy-1.9.3+vanilla-cp27-none-win_amd64.whl')
 
 def check_import_lxml():
     import lxml
     return inspect.getfile(lxml)
 
 def handle_import_lxml():
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/lxml-3.5.0-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/lxml-3.5.0-cp27-none-win_amd64.whl')
 
 def check_import_cheetah():
     import Cheetah
     return inspect.getfile(Cheetah)
 
 def handle_import_cheetah():
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/Cheetah-2.4.4-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/Cheetah-2.4.4-cp27-none-win_amd64.whl')
 
 def check_import_wxpython():
     import wx
@@ -274,8 +274,8 @@ def check_import_wxpython():
     return inspect.getfile(wx)
 
 def handle_import_wxpython():
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/wxPython-3.0.2.0-cp27-none-win_amd64.whl')
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/wxPython_common-3.0.2.0-py2-none-any.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/wxPython-3.0.2.0-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/wxPython_common-3.0.2.0-py2-none-any.whl')
 
 def check_import_pyopengl():
     import OpenGL
@@ -284,8 +284,8 @@ def check_import_pyopengl():
 
 def handle_import_pyopengl():
     print("Installing PyOpenGL with pip:")
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL-3.1.1b1-cp27-none-win_amd64.whl')
-    pip_install_url('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL_accelerate-3.1.1a1-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL-3.1.1b1-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL_accelerate-3.1.1a1-cp27-none-win_amd64.whl')
     print("  Done!")
 
 CHECKS = [
