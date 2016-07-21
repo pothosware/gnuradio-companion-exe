@@ -8,6 +8,7 @@ import os
 import sys
 import inspect
 import tempfile
+import subprocess
 from ctypes.util import find_library
 
 ########################################################################
@@ -63,7 +64,7 @@ class Environment(object):
 PIP_EXE = os.path.join(os.path.dirname(sys.executable), 'Scripts', 'pip.exe')
 
 def pip_install(arg):
-    ret = os.system('"%s" install "%s"'%(PIP_EXE, arg))
+    ret = subprocess.call([PIP_EXE, 'install', arg], shell=True)
     if ret != 0:
         print("Error: pip failed to install %s"%arg)
         return -1
@@ -123,7 +124,7 @@ def handle_gtk_runtime():
         return -1
 
     print("Running installer: %s"%GTK_EXE)
-    ret = os.system('"%s" /S'%GTK_EXE) #silent install
+    ret = subprocess.call([GTK_EXE, '/S'], shell=True) #silent install
     if ret != 0:
         print("The GTK installer failed with exit code %d"%ret)
         exit(ret)
