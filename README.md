@@ -20,4 +20,4 @@ The executable has several purposes:
 The GnuradioHelper.py script is capable of sanity checking an install
 and automatically installs missing python modules and the gtk+ runtime.
 It also sets environment variables PATH, PYTHONPATH, and GRC_BLOCKS_PATH:
-However, normally the installer has failed to set these up automatically.
+However, normally the installer will setup these paths automatically.
