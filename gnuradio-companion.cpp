@@ -18,6 +18,23 @@ const bool fileExists(const std::string &path)
 }
 
 /***********************************************************************
+ * Insert into the environment specified by name
+ **********************************************************************/
+const void insertEnvPath(const char *name, const std::string &value)
+{
+    char originalPath[(32*1024)-1];
+    const DWORD numRead = GetEnvironmentVariable(name, originalPath, sizeof(originalPath));
+    std::string newPath(value);
+    if (numRead > 0)
+    {
+        newPath += ";";
+        newPath += originalPath;
+    }
+    if (not SetEnvironmentVariable(name, newPath.c_str())) throw std::runtime_error(
+        "Failed to insert " + value + " into the " + std::string(name) + " environment variable");
+}
+
+/***********************************************************************
  * Extract the python 2.7 install path from the registry
  **********************************************************************/
 static std::string getPython27ExePath(void)
@@ -137,6 +154,28 @@ int main(int argc, char **argv)
     catch (const std::exception &ex)
     {
         MessageBox(nullptr, ex.what(), "Gnuradio Companion location failed!", MB_OK | MB_ICONERROR);
+        return EXIT_FAILURE;
+    }
+
+    //setup the environment
+    try
+    {
+        //set the python path in case that the installer did not register the modules
+        insertEnvPath("PYTHONPATH", getExeDirectoryPath() + "\\..\\lib\\python2.7\\site-packages");
+
+        //point GRC to its blocks in case that its not set by the installer
+        insertEnvPath("GRC_BLOCKS_PATH", getExeDirectoryPath() + "\\..\\share\\gnuradio\\grc\\blocks");
+
+        //The GTK runtime installer as invoked by GNURadioHelper.py adds the GTK DLLs to the PATH by default.
+        //However, to avoid DLL hell, we can insert the DLLs into the front of the PATH to give them priority.
+        insertEnvPath("PATH", "C:\\Program Files\\GTK2-Runtime Win64\\bin");
+
+        //installer runtime DLLs (top priority)
+        insertEnvPath("PATH", getExeDirectoryPath());
+    }
+    catch (const std::exception &ex)
+    {
+        MessageBox(nullptr, ex.what(), "Environment configuration failed!", MB_OK | MB_ICONERROR);
         return EXIT_FAILURE;
     }
 
