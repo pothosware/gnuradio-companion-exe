@@ -253,14 +253,14 @@ def check_import_numpy():
     return inspect.getfile(numpy)
 
 def handle_import_numpy():
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/numpy-1.9.3+vanilla-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/numpy-1.12.0+mkl-cp27-cp27m-win_amd64.whl')
 
 def check_import_lxml():
     import lxml
     return inspect.getfile(lxml)
 
 def handle_import_lxml():
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/lxml-3.5.0-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/lxml-3.7.2-cp27-cp27m-win_amd64.whl')
 
 def check_import_cheetah():
     import Cheetah
@@ -285,8 +285,8 @@ def check_import_pyopengl():
 
 def handle_import_pyopengl():
     print("Installing PyOpenGL with pip:")
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL-3.1.1b1-cp27-none-win_amd64.whl')
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL_accelerate-3.1.1a1-cp27-none-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL-3.1.1-cp27-cp27m-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL_accelerate-3.1.1-cp27-cp27m-win_amd64.whl')
     print("  Done!")
 
 CHECKS = [
