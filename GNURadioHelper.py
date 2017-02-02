@@ -59,6 +59,29 @@ class Environment(object):
             self.HWND_BROADCAST, self.WM_SETTINGCHANGE, 0, u'Environment')
 
 ########################################################################
+## determine-if-an-executable-or-library-is-32-or-64-bits-on-windows
+## https://stackoverflow.com/questions/1345632
+########################################################################
+import struct
+
+IMAGE_FILE_MACHINE_I386=332
+IMAGE_FILE_MACHINE_IA64=512
+IMAGE_FILE_MACHINE_AMD64=34404
+
+def getDllMachineType(path):
+    f=open(path, "rb")
+    s=f.read(2)
+    if s!="MZ": raise Exception("%s is not a DLL"%path)
+    f.seek(60)
+    s=f.read(4)
+    header_offset=struct.unpack("<L", s)[0]
+    f.seek(header_offset+4)
+    s=f.read(2)
+    machine=struct.unpack("<H", s)[0]
+    f.close()
+    return machine
+
+########################################################################
 ## Pip helpers
 ########################################################################
 PIP_EXE = os.path.join(os.path.dirname(sys.executable), 'Scripts', 'pip.exe')
@@ -93,10 +116,21 @@ def handle_python_version():
 ## GTK checks
 ########################################################################
 def check_gtk_runtime():
-    libgtk = find_library("libgtk-win32-2.0-0.dll")
 
+    gtk_dll_name = "libgtk-win32-2.0-0.dll"
+
+    #first check that the installer default is found
+    installer_default = os.path.join("C:\\Program Files\\GTK2-Runtime Win64\\bin", gtk_dll_name)
+    if os.path.exists(installer_default): return installer_default
+
+    #regular dll search within the path
+    libgtk = find_library(gtk_dll_name)
     if libgtk is None:
         raise Exception("failed to locate the GTK+ runtime DLL")
+
+    #reject 32-bit versions of this dll
+    if getDllMachineType(libgtk) != IMAGE_FILE_MACHINE_AMD64:
+        raise Exception("%s is not AMD64"%libgtk)
 
     return libgtk
 
