@@ -257,7 +257,7 @@ def handle_import_gr():
     print("Open a new command window and re-run this script...")
 
 def check_grc_blocks_path():
-    GRC_BLOCKS_PATH = os.environ.get('GRC_BLOCKS_PATH', '')
+    GRC_BLOCKS_PATH = os.environ.get('GRC_BLOCKS_PATH', '').split(';')[0] #take the first entry
     if not GRC_BLOCKS_PATH:
         raise Exception("GRC_BLOCKS_PATH is not set")
     if not os.path.exists(GRC_BLOCKS_PATH):
