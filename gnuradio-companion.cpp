@@ -91,6 +91,15 @@ static std::string getExeDirectoryPath(void)
     return exePath.substr(0, slashPos);
 }
 
+static std::string getRootDirectoryPath(void)
+{
+    const auto exePath = getExeDirectoryPath();
+    const size_t slashPos = exePath.find_last_of("/\\");
+    if (slashPos == std::string::npos) throw std::runtime_error(
+        "Failed to traverse up a directory from the exe path!");
+    return exePath.substr(0, slashPos);
+}
+
 /***********************************************************************
  * Helper to execute a process and wait for completion
  **********************************************************************/
@@ -161,10 +170,10 @@ int main(int argc, char **argv)
     try
     {
         //set the python path in case that the installer did not register the modules
-        insertEnvPath("PYTHONPATH", getExeDirectoryPath() + "\\..\\lib\\python2.7\\site-packages");
+        insertEnvPath("PYTHONPATH", getRootDirectoryPath() + "\\lib\\python2.7\\site-packages");
 
         //point GRC to its blocks in case that its not set by the installer
-        insertEnvPath("GRC_BLOCKS_PATH", getExeDirectoryPath() + "\\..\\share\\gnuradio\\grc\\blocks");
+        insertEnvPath("GRC_BLOCKS_PATH", getRootDirectoryPath() + "\\share\\gnuradio\\grc\\blocks");
 
         //The GTK runtime installer as invoked by GNURadioHelper.py adds the GTK DLLs to the PATH by default.
         //However, to avoid DLL hell, we can insert the DLLs into the front of the PATH to give them priority.
