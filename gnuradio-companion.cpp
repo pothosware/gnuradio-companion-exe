@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2016 Josh Blum
+// Copyright (c) 2016-2021 Josh Blum
 // SPDX-License-Identifier: BSL-1.0
 
 #include <Windows.h>
@@ -35,20 +35,20 @@ const void insertEnvPath(const char *name, const std::string &value)
 }
 
 /***********************************************************************
- * Extract the python 2.7 install path from the registry
+ * Extract the python exe install path from the registry
  **********************************************************************/
-static std::string getPython27ExePath(void)
+static std::string getPythonExePath(const std::string &pyver)
 {
     HKEY key;
 
-    const std::string regPath("SOFTWARE\\Python\\PythonCore\\2.7\\InstallPath");
+    const std::string regPath("SOFTWARE\\Python\\PythonCore\\" + pyver + "\\InstallPath");
     LONG ret = RegOpenKeyEx(
         HKEY_LOCAL_MACHINE,
         regPath.c_str(), 0, KEY_READ, &key);
 
     if (ret != ERROR_SUCCESS) throw std::runtime_error(
         "Failed to open registry key HKLM\\" + regPath +
-        "\nIs Python 2.7 installed?");
+        "\nIs Python " + pyver + " installed?");
 
     char pathStr[512];
     DWORD pathSize = sizeof(pathStr);
@@ -59,7 +59,7 @@ static std::string getPython27ExePath(void)
 
     if (ret != ERROR_SUCCESS) throw std::runtime_error(
         "Failed to read registry key HKLM\\" + regPath +
-        "\nPossible Python 2.7 install issue.");
+        "\nPossible Python " + pyver + " install issue.");
 
     const std::string pythonPath = std::string(pathStr) + "\\python.exe";
     if (not fileExists(pythonPath)) throw std::runtime_error(pythonPath + " does not exist!");
@@ -144,11 +144,11 @@ int main(int argc, char **argv)
     std::string pythonExe;
     try
     {
-        pythonExe = getPython27ExePath();
+        pythonExe = getPythonExePath(PYTHON_VERSION);
     }
     catch (const std::exception &ex)
     {
-        MessageBox(nullptr, ex.what(), "Python 2.7 inspection failed!", MB_OK | MB_ICONERROR);
+        MessageBox(nullptr, ex.what(), "Python exe inspection failed!", MB_OK | MB_ICONERROR);
         return EXIT_FAILURE;
     }
 
@@ -170,14 +170,14 @@ int main(int argc, char **argv)
     try
     {
         //set the python path in case that the installer did not register the modules
-        insertEnvPath("PYTHONPATH", getRootDirectoryPath() + "\\lib\\python2.7\\site-packages");
+        insertEnvPath("PYTHONPATH", getRootDirectoryPath() + "\\lib\\python"+PYTHON_VERSION+"\\site-packages");
 
         //point GRC to its blocks in case that its not set by the installer
         insertEnvPath("GRC_BLOCKS_PATH", getRootDirectoryPath() + "\\share\\gnuradio\\grc\\blocks");
 
         //The GTK runtime installer as invoked by GNURadioHelper.py adds the GTK DLLs to the PATH by default.
         //However, to avoid DLL hell, we can insert the DLLs into the front of the PATH to give them priority.
-        insertEnvPath("PATH", "C:\\Program Files\\GTK2-Runtime Win64\\bin");
+        //insertEnvPath("PATH", "C:\\Program Files\\GTK2-Runtime Win64\\bin");
 
         //installer runtime DLLs (top priority)
         insertEnvPath("PATH", getExeDirectoryPath());
@@ -217,6 +217,7 @@ int main(int argc, char **argv)
         std::vector<std::string> args;
         args.push_back(pythonExe);
         args.push_back(gnuradioHelper);
+        args.push_back(PYTHON_VERSION);
         return execProcess(args);
     }
     catch (const std::exception &ex)

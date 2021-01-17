@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2016 Josh Blum
+# Copyright (c) 2015-2021 Josh Blum
 # SPDX-License-Identifier: BSL-1.0
 
 ########################################################################
@@ -10,6 +10,18 @@ import inspect
 import tempfile
 import subprocess
 from ctypes.util import find_library
+
+########################################################################
+## pass in python version
+########################################################################
+PYTHON_VERSION = sys.argv[1]
+
+########################################################################
+## Python3.8 and above needs DLL path
+########################################################################
+RUNTIME_DIR = os.path.abspath(os.path.dirname(__file__))
+try: os.add_dll_directory(RUNTIME_DIR)
+except: pass
 
 ########################################################################
 ## Registry/Environment helpers
@@ -100,8 +112,9 @@ def check_python_version():
     if not is_64bits:
         raise Exception("requires 64-bit Python")
 
-    if sys.version_info.major != 2 or sys.version_info.minor != 7:
-        raise Exception("requires Python version 2.7")
+    current_ver = "%d.%d"%(sys.version_info.major, sys.version_info.minor)
+    if current_ver != PYTHON_VERSION:
+        raise Exception("requires Python version %s"%PYTHON_VERSION)
 
     if not os.path.exists(PIP_EXE):
         raise Exception("can't find pip executable %s"%PIP_EXE)
@@ -109,12 +122,13 @@ def check_python_version():
     return sys.version
 
 def handle_python_version():
-    print("Error: Invoke/Reinstall Python2.7 for amd64")
+    print("Error: Invoke/Reinstall Python%s for amd64"%PYTHON_VERSION)
     return -1
 
 ########################################################################
 ## GTK checks
 ########################################################################
+"""
 def check_gtk_runtime():
 
     gtk_dll_name = "libgtk-win32-2.0-0.dll"
@@ -174,6 +188,7 @@ def handle_import_gtk():
     pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pygtk-2.22.0-cp27-none-win_amd64.whl')
     pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pygobject-2.28.6-cp27-none-win_amd64.whl')
     pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pycairo_gtk-1.10.0-cp27-none-win_amd64.whl')
+"""
 
 ########################################################################
 ## GNU Radio checks
@@ -181,8 +196,7 @@ def handle_import_gtk():
 def guess_bin_path():
 
     #was it run from the proper install directory?
-    path = os.path.abspath(os.path.dirname(__file__))
-    if os.path.exists(os.path.join(path, "gnuradio-runtime.dll")): return path
+    if os.path.exists(os.path.join(RUNTIME_DIR, "gnuradio-runtime.dll")): return path
 
     #otherwise search the path to find the root
     gnuradio_runtime = find_library("gnuradio-runtime.dll")
@@ -230,9 +244,7 @@ def check_import_gr():
 
 def handle_import_gr():
     binDir = guess_bin_path()
-    path = os.path.join(os.path.dirname(binDir), 'lib', 'python2.7', 'site-packages')
-    if not os.path.exists(path): #or use old-style path without python version
-        path = os.path.join(os.path.dirname(binDir), 'lib', 'site-packages')
+    path = os.path.join(os.path.dirname(binDir), 'lib', 'python%s'%PYTHON_VERSION, 'site-packages')
     path = os.path.normpath(path)
     print("Error: GNURadio modules missing from PYTHONPATH")
 
@@ -262,8 +274,8 @@ def check_grc_blocks_path():
         raise Exception("GRC_BLOCKS_PATH is not set")
     if not os.path.exists(GRC_BLOCKS_PATH):
         raise Exception("GRC_BLOCKS_PATH '%s' does not exist"%GRC_BLOCKS_PATH)
-    if not os.path.exists(os.path.join(GRC_BLOCKS_PATH, 'options.xml')):
-        raise Exception("GRC_BLOCKS_PATH '%s' does not contain options.xml"%GRC_BLOCKS_PATH)
+    if not os.path.exists(os.path.join(GRC_BLOCKS_PATH, 'options.block.yml')):
+        raise Exception("GRC_BLOCKS_PATH '%s' does not contain options.block.yml"%GRC_BLOCKS_PATH)
     return GRC_BLOCKS_PATH
 
 def handle_grc_blocks_path():
@@ -287,57 +299,34 @@ def check_import_numpy():
     return inspect.getfile(numpy)
 
 def handle_import_numpy():
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/numpy-1.12.0+mkl-cp27-cp27m-win_amd64.whl')
+    pip_install('numpy')
 
-def check_import_lxml():
-    import lxml
-    return inspect.getfile(lxml)
+def check_import_mako():
+    import mako
+    return inspect.getfile(mako)
 
-def handle_import_lxml():
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/lxml-3.7.2-cp27-cp27m-win_amd64.whl')
+def handle_import_mako():
+    pip_install('mako')
 
-def check_import_cheetah():
-    import Cheetah
-    return inspect.getfile(Cheetah)
+def check_import_pyyaml():
+    import yaml
+    return inspect.getfile(yaml)
 
-def handle_import_cheetah():
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/Cheetah-2.4.4-cp27-none-win_amd64.whl')
-
-def check_import_wxpython():
-    import wx
-    import wx.glcanvas
-    return inspect.getfile(wx)
-
-def handle_import_wxpython():
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/wxPython-3.0.2.0-cp27-none-win_amd64.whl')
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/wxPython_common-3.0.2.0-py2-none-any.whl')
-
-def check_import_pyopengl():
-    import OpenGL
-    import OpenGL.GL
-    return inspect.getfile(OpenGL)
-
-def handle_import_pyopengl():
-    print("Installing PyOpenGL with pip:")
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL-3.1.1-cp27-cp27m-win_amd64.whl')
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/PyOpenGL_accelerate-3.1.1-cp27-cp27m-win_amd64.whl')
-    print("  Done!")
+def handle_import_pyyaml():
+    pip_install('pyyaml')
 
 CHECKS = [
     #first check gr runtime so we can locate the install based on runtime dll in PATH
     ("GR_RUNTIME",     'locate GNURadio runtime', check_gr_runtime, handle_gr_runtime),
 
     #gtk runtime is similar check for dlls in the seatch PATH (no python required)
-    ("GTK_RUNTIME",    'locate GTK+ runtime',     check_gtk_runtime, handle_gtk_runtime),
+    #("GTK_RUNTIME",    'locate GTK+ runtime',     check_gtk_runtime, handle_gtk_runtime),
 
     #basic python environment and import checks and using pip to install from a URL
-    ("PYVERSION",      'Python version is 2.7',   check_python_version, handle_python_version),
-    ("IMPORT_GTK",     'import gtk module',       check_import_gtk, handle_import_gtk),
+    ("PYVERSION",      'Python version is %s'%PYTHON_VERSION, check_python_version, handle_python_version),
     ("IMPORT_NUMPY",   'import numpy module',     check_import_numpy, handle_import_numpy),
-    ("IMPORT_LXML",    'import lxml module',      check_import_lxml, handle_import_lxml),
-    ("IMPORT_CHEETAH", 'import Cheetah module',   check_import_cheetah, handle_import_cheetah),
-    ("IMPORT_WX",      'import wx module',        check_import_wxpython, handle_import_wxpython),
-    ("IMPORT_OPENGL",  'import OpenGL module',    check_import_pyopengl, handle_import_pyopengl),
+    ("IMPORT_MAKO",    'import mako module',      check_import_mako, handle_import_mako),
+    ("IMPORT_PYYAML",  'import pyyaml module',    check_import_pyyaml, handle_import_pyyaml),
 
     #final checks for GNU Radio and GRC that set local environment variables
     ("GRC_BLOCKS",     'GRC blocks path set',     check_grc_blocks_path, handle_grc_blocks_path),
