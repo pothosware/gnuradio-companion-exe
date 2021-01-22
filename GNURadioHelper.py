@@ -14,7 +14,7 @@ from ctypes.util import find_library
 ########################################################################
 ## pass in python version
 ########################################################################
-PYTHON_VERSION = sys.argv[1]
+PYTHON_VERSION = "@PYTHON_VERSION@"
 
 ########################################################################
 ## Python3.8 and above needs DLL path
@@ -128,67 +128,22 @@ def handle_python_version():
 ########################################################################
 ## GTK checks
 ########################################################################
-"""
-def check_gtk_runtime():
-
-    gtk_dll_name = "libgtk-win32-2.0-0.dll"
-
-    #first check that the installer default is found
-    installer_default = os.path.join("C:\\Program Files\\GTK2-Runtime Win64\\bin", gtk_dll_name)
-    if os.path.exists(installer_default): return installer_default
-
-    #regular dll search within the path
-    libgtk = find_library(gtk_dll_name)
-    if libgtk is None:
-        raise Exception("failed to locate the GTK+ runtime DLL")
-
-    #reject 32-bit versions of this dll
-    if getDllMachineType(libgtk) != IMAGE_FILE_MACHINE_AMD64:
-        raise Exception("%s is not AMD64"%libgtk)
-
-    return libgtk
-
-def handle_gtk_runtime():
-
-    GTK_URL = 'http://downloads.myriadrf.org/binaries/python27_amd64/gtk2-runtime-2.22.1-2014-02-01-ts-win64.exe'
-    GTK_EXE = os.path.join(tempfile.gettempdir(), 'gtk2-runtime-2.22.1-2014-02-01-ts-win64.exe')
-
-    if not os.path.exists(GTK_EXE):
-
-        #need requests to download the exe
-        try: import requests
-        except: pip_install("requests")
-        import requests
-
-        #download from the url to the destination
-        r = requests.get(GTK_URL)
-        with open(GTK_EXE, 'wb') as fd:
-            for chunk in r.iter_content(1024*1024):
-                fd.write(chunk)
-
-    if not os.path.exists(GTK_EXE):
-        print("Cant find installer: %s"%GTK_EXE)
-        print("Failed to download: %s"%GTK_URL)
-        return -1
-
-    print("Running installer: %s"%GTK_EXE)
-    ret = subprocess.call([GTK_EXE, '/S'], shell=True) #silent install
-    if ret != 0:
-        print("The GTK installer failed with exit code %d"%ret)
-        exit(ret)
-
-    print("The GTK installer should have modified the system path")
-    print("Open a new command window and re-run this script...")
-
 def check_import_gtk():
-    import gtk
-    return inspect.getfile(gtk)
+    import gi
+    gi.require_version('Gtk', '3.0')
+    gi.require_version('PangoCairo', '1.0')
+    gi.require_foreign('cairo', 'Context')
+
+    from gi.repository import Gtk
+    Gtk.init_check()
+
+    return inspect.getfile(Gtk)
 
 def handle_import_gtk():
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pygtk-2.22.0-cp27-none-win_amd64.whl')
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pygobject-2.28.6-cp27-none-win_amd64.whl')
-    pip_install('http://downloads.myriadrf.org/binaries/python27_amd64/pycairo_gtk-1.10.0-cp27-none-win_amd64.whl')
-"""
+    pip_install('wheel') #wheel needed for this file type:
+    print('Downloading and installing pygtk + gtk runtime:')
+    print('     The module is large, this may take time...')
+    pip_install('http://downloads.myriadrf.org/binaries/python39_amd64/PothosSDRPyGTK-2021.1.21-cp39-cp39-win_amd64.whl')
 
 ########################################################################
 ## GNU Radio checks
@@ -294,6 +249,13 @@ def handle_grc_blocks_path():
 ########################################################################
 ## Other module checks
 ########################################################################
+def check_import_pyqt():
+    import PyQt5
+    return inspect.getfile(PyQt5)
+
+def handle_import_pyqt():
+    pip_install('PyQt5')
+
 def check_import_numpy():
     import numpy
     return inspect.getfile(numpy)
@@ -319,11 +281,10 @@ CHECKS = [
     #first check gr runtime so we can locate the install based on runtime dll in PATH
     ("GR_RUNTIME",     'locate GNURadio runtime', check_gr_runtime, handle_gr_runtime),
 
-    #gtk runtime is similar check for dlls in the seatch PATH (no python required)
-    #("GTK_RUNTIME",    'locate GTK+ runtime',     check_gtk_runtime, handle_gtk_runtime),
-
     #basic python environment and import checks and using pip to install from a URL
     ("PYVERSION",      'Python version is %s'%PYTHON_VERSION, check_python_version, handle_python_version),
+    ("IMPORT_GTK",     'import gtk module',       check_import_gtk, handle_import_gtk),
+    ("IMPORT_PYQT",    'import pyqt module',      check_import_pyqt, handle_import_pyqt),
     ("IMPORT_NUMPY",   'import numpy module',     check_import_numpy, handle_import_numpy),
     ("IMPORT_MAKO",    'import mako module',      check_import_mako, handle_import_mako),
     ("IMPORT_PYYAML",  'import pyyaml module',    check_import_pyyaml, handle_import_pyyaml),

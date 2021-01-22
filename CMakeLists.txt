@@ -33,6 +33,10 @@ install(
 ########################################################################
 # Install gnuradio helper script
 ########################################################################
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/GNURadioHelper.py
+    ${CMAKE_CURRENT_BINARY_DIR}/GNURadioHelper.py
+    @ONLY)
 install(
-    PROGRAMS GNURadioHelper.py
+    PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/GNURadioHelper.py
     DESTINATION bin)

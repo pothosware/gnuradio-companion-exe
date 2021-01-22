@@ -175,10 +175,6 @@ int main(int argc, char **argv)
         //point GRC to its blocks in case that its not set by the installer
         insertEnvPath("GRC_BLOCKS_PATH", getRootDirectoryPath() + "\\share\\gnuradio\\grc\\blocks");
 
-        //The GTK runtime installer as invoked by GNURadioHelper.py adds the GTK DLLs to the PATH by default.
-        //However, to avoid DLL hell, we can insert the DLLs into the front of the PATH to give them priority.
-        //insertEnvPath("PATH", "C:\\Program Files\\GTK2-Runtime Win64\\bin");
-
         //installer runtime DLLs (top priority)
         insertEnvPath("PATH", getExeDirectoryPath());
     }
@@ -217,7 +213,6 @@ int main(int argc, char **argv)
         std::vector<std::string> args;
         args.push_back(pythonExe);
         args.push_back(gnuradioHelper);
-        args.push_back(PYTHON_VERSION);
         return execProcess(args);
     }
     catch (const std::exception &ex)
