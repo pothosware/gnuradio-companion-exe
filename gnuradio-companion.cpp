@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <ciso646>
 #include <vector>
+#include <cctype>
 
 /***********************************************************************
  * True if a file path exists
@@ -35,36 +36,85 @@ const void insertEnvPath(const char *name, const std::string &value)
 }
 
 /***********************************************************************
- * Extract the python exe install path from the registry
+ * Only keep digits in a string
  **********************************************************************/
-static std::string getPythonExePath(const std::string &pyver)
+static std::string keepDigits(const std::string &s)
+{
+    std::string out;
+    for (const auto &c : s) if (std::isdigit(c)) out += c;
+    return out;
+}
+
+/***********************************************************************
+ * Common paths for the python executable
+ **********************************************************************/
+static std::string getPythonExePathLocalUser(void)
+{
+    const std::string suffix("\\Programs\\Python\\Python" + keepDigits(PYTHON_VERSION) + "\\python.exe");
+    char pathStr[512];
+    DWORD ret = GetEnvironmentVariable("LOCALAPPDATA", pathStr, sizeof(pathStr));
+    if (ret <= 0) return "";
+    return std::string(pathStr, ret) + suffix;
+}
+
+static std::string getPythonExePathGlobalUser(void)
+{
+    const std::string suffix("\\Python" + keepDigits(PYTHON_VERSION) + "\\python.exe");
+    char pathStr[512];
+    DWORD ret = GetEnvironmentVariable("PROGRAMFILES", pathStr, sizeof(pathStr));
+    if (ret <= 0) return "";
+    return std::string(pathStr, ret) + suffix;
+}
+
+static const std::string regPath("SOFTWARE\\Python\\PythonCore\\" + std::string(PYTHON_VERSION) + "\\InstallPath");
+
+static std::string getPythonExePathRegistry(void)
 {
     HKEY key;
-
-    const std::string regPath("SOFTWARE\\Python\\PythonCore\\" + pyver + "\\InstallPath");
-    LONG ret = RegOpenKeyEx(
-        HKEY_LOCAL_MACHINE,
-        regPath.c_str(), 0, KEY_READ, &key);
-
-    if (ret != ERROR_SUCCESS) throw std::runtime_error(
-        "Failed to open registry key HKLM\\" + regPath +
-        "\nIs Python " + pyver + " installed?");
+    LONG ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath.c_str(), 0, KEY_READ, &key);
+    if (ret != ERROR_SUCCESS) return "";
 
     char pathStr[512];
     DWORD pathSize = sizeof(pathStr);
-    ret |= RegQueryValueEx(
-        key, "", nullptr, nullptr,
-        (LPBYTE)&pathStr, &pathSize);
+    ret |= RegQueryValueEx(key, "", nullptr, nullptr, (LPBYTE)&pathStr, &pathSize);
     RegCloseKey(key);
+    if (ret != ERROR_SUCCESS) return "";
 
-    if (ret != ERROR_SUCCESS) throw std::runtime_error(
-        "Failed to read registry key HKLM\\" + regPath +
-        "\nPossible Python " + pyver + " install issue.");
+    return std::string(pathStr) + "\\python.exe";
+}
 
-    const std::string pythonPath = std::string(pathStr) + "\\python.exe";
-    if (not fileExists(pythonPath)) throw std::runtime_error(pythonPath + " does not exist!");
+/***********************************************************************
+ * Find a python executable on the system
+ **********************************************************************/
+static std::string getPythonExePath(void)
+{
+    std::vector<std::string> paths;
 
-    return pythonPath;
+    std::string errorMsg("Failed to find amd64 python.exe:\n");
+    for (const auto &path : {
+        getPythonExePathLocalUser(),
+        getPythonExePathGlobalUser(),
+        getPythonExePathRegistry()})
+    {
+        if (path.empty()) continue;
+        DWORD binaryType;
+        const bool binTypeOk = GetBinaryTypeA(path.c_str(), &binaryType);
+        const bool is64Bit = binTypeOk and binaryType == SCS_64BIT_BINARY;
+        errorMsg += path;
+        if (not fileExists(path)) errorMsg += " (not found)";
+        else if (not is64Bit) errorMsg += " (not amd64)";
+        else paths.push_back(path);
+        errorMsg += "\n";
+    }
+
+    //list the HKEY_LOCAL_MACHINE search path as well
+    errorMsg += "[HKLM]" + regPath + "\n";
+
+    //found a result, return the first one
+    if (not paths.empty()) return paths.front();
+
+    //otherwise throw the error message
+    throw std::runtime_error(errorMsg);
 }
 
 /***********************************************************************
@@ -144,7 +194,7 @@ int main(int argc, char **argv)
     std::string pythonExe;
     try
     {
-        pythonExe = getPythonExePath(PYTHON_VERSION);
+        pythonExe = getPythonExePath();
     }
     catch (const std::exception &ex)
     {
