@@ -91,10 +91,14 @@ static std::string getPythonExePath(void)
     std::vector<std::string> paths;
 
     std::string errorMsg("Failed to find amd64 python.exe:\n");
+
+    //list the HKEY_LOCAL_MACHINE search path as well
+    errorMsg += "[HKLM]" + regPath + "\n";
+
     for (const auto &path : {
-        getPythonExePathLocalUser(),
-        getPythonExePathGlobalUser(),
-        getPythonExePathRegistry()})
+        getPythonExePathRegistry(), //prefer python found in the registry key
+        getPythonExePathGlobalUser(), //next check the default program files install path
+        getPythonExePathLocalUser()}) //and then the local user appdata install path
     {
         if (path.empty()) continue;
         DWORD binaryType;
@@ -106,9 +110,6 @@ static std::string getPythonExePath(void)
         else paths.push_back(path);
         errorMsg += "\n";
     }
-
-    //list the HKEY_LOCAL_MACHINE search path as well
-    errorMsg += "[HKLM]" + regPath + "\n";
 
     //found a result, return the first one
     if (not paths.empty()) return paths.front();
