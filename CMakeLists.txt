@@ -15,6 +15,7 @@ enable_language(RC)
 set(CMAKE_RC_COMPILE_OBJECT
     "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
 set(PYTHON_VERSION "3.9" CACHE STRING "Python version to support")
+string(REPLACE "." "" PYVER_NO_DOTS "${PYTHON_VERSION}")
 
 ########################################################################
 # Create gnuradio-companion executable
@@ -22,6 +23,7 @@ set(PYTHON_VERSION "3.9" CACHE STRING "Python version to support")
 set(CMAKE_EXE_LINKER_FLAGS "/entry:mainCRTStartup ${CMAKE_EXE_LINKER_FLAGS}")
 add_executable(gnuradio-companion WIN32 gnuradio-companion.cpp ${RES_FILES})
 target_compile_definitions(gnuradio-companion PRIVATE -DPYTHON_VERSION=\"${PYTHON_VERSION}\")
+target_compile_definitions(gnuradio-companion PRIVATE -DPYVER_NO_DOTS=\"${PYVER_NO_DOTS}\")
 
 ########################################################################
 # Install gnuradio-companion executable

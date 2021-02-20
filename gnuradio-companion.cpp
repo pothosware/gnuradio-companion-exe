@@ -8,7 +8,6 @@
 #include <cstdlib>
 #include <ciso646>
 #include <vector>
-#include <cctype>
 
 /***********************************************************************
  * True if a file path exists
@@ -36,42 +35,20 @@ const void insertEnvPath(const char *name, const std::string &value)
 }
 
 /***********************************************************************
- * Only keep digits in a string
- **********************************************************************/
-static std::string keepDigits(const std::string &s)
-{
-    std::string out;
-    for (const auto &c : s) if (std::isdigit(c)) out += c;
-    return out;
-}
-
-/***********************************************************************
  * Common paths for the python executable
  **********************************************************************/
-static std::string getPythonExePathLocalUser(void)
+static std::string getPythonEnvInstallPath(const char *envName, const char *suffix)
 {
-    const std::string suffix("\\Programs\\Python\\Python" + keepDigits(PYTHON_VERSION) + "\\python.exe");
     char pathStr[512];
-    DWORD ret = GetEnvironmentVariable("LOCALAPPDATA", pathStr, sizeof(pathStr));
+    DWORD ret = GetEnvironmentVariable(envName, pathStr, sizeof(pathStr));
     if (ret <= 0) return "";
     return std::string(pathStr, ret) + suffix;
 }
 
-static std::string getPythonExePathGlobalUser(void)
-{
-    const std::string suffix("\\Python" + keepDigits(PYTHON_VERSION) + "\\python.exe");
-    char pathStr[512];
-    DWORD ret = GetEnvironmentVariable("PROGRAMFILES", pathStr, sizeof(pathStr));
-    if (ret <= 0) return "";
-    return std::string(pathStr, ret) + suffix;
-}
-
-static const std::string regPath("SOFTWARE\\Python\\PythonCore\\" + std::string(PYTHON_VERSION) + "\\InstallPath");
-
-static std::string getPythonExePathRegistry(void)
+static std::string getPythonExePathRegistry(const char *regPath)
 {
     HKEY key;
-    LONG ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath.c_str(), 0, KEY_READ, &key);
+    LONG ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_READ, &key);
     if (ret != ERROR_SUCCESS) return "";
 
     char pathStr[512];
@@ -86,19 +63,25 @@ static std::string getPythonExePathRegistry(void)
 /***********************************************************************
  * Find a python executable on the system
  **********************************************************************/
+#define HKLM_PYTHON_PATH "SOFTWARE\\Python\\PythonCore\\" PYTHON_VERSION "\\InstallPath"
+
 static std::string getPythonExePath(void)
 {
     std::vector<std::string> paths;
 
-    std::string errorMsg("Failed to find amd64 python.exe:\n");
-
-    //list the HKEY_LOCAL_MACHINE search path as well
-    errorMsg += "[HKLM]" + regPath + "\n";
+    std::string errorMsg(
+        "Failed to find amd64 python.exe:\n"
+        "[HKLM] " HKLM_PYTHON_PATH "\n");
 
     for (const auto &path : {
-        getPythonExePathRegistry(), //prefer python found in the registry key
-        getPythonExePathGlobalUser(), //next check the default program files install path
-        getPythonExePathLocalUser()}) //and then the local user appdata install path
+        //prefer python found in the registry key
+        getPythonExePathRegistry(HKLM_PYTHON_PATH),
+
+        //next check the default program files install path
+        getPythonEnvInstallPath("PROGRAMFILES", "\\Python" PYVER_NO_DOTS "\\python.exe"),
+
+        //and then the local user appdata install path
+        getPythonEnvInstallPath("LOCALAPPDATA", "\\Programs\\Python\\Python" PYVER_NO_DOTS "\\python.exe")})
     {
         if (path.empty()) continue;
         DWORD binaryType;
