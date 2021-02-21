@@ -143,7 +143,7 @@ def handle_import_gtk():
     pip_install('wheel') #wheel needed for this file type:
     print('Downloading and installing pygtk + gtk runtime:')
     print('     The module is large, this may take time...')
-    pip_install('http://downloads.myriadrf.org/binaries/python39_amd64/PothosSDRPyGTK-2021.1.21-cp39-cp39-win_amd64.whl')
+    pip_install('http://downloads.myriadrf.org/binaries/python39_amd64/PothosSDRPyGTK-2021.2.16-cp39-cp39-win_amd64.whl')
 
 ########################################################################
 ## GNU Radio checks
