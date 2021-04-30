@@ -45,10 +45,10 @@ static std::string getPythonEnvInstallPath(const char *envName, const char *suff
     return std::string(pathStr, ret) + suffix;
 }
 
-static std::string getPythonExePathRegistry(const char *regPath)
+static std::string getPythonExePathRegistry(HKEY hKey, const char *regPath)
 {
     HKEY key;
-    LONG ret = RegOpenKeyEx(HKEY_LOCAL_MACHINE, regPath, 0, KEY_READ, &key);
+    LONG ret = RegOpenKeyEx(hKey, regPath, 0, KEY_READ, &key);
     if (ret != ERROR_SUCCESS) return "";
 
     char pathStr[512];
@@ -63,7 +63,7 @@ static std::string getPythonExePathRegistry(const char *regPath)
 /***********************************************************************
  * Find a python executable on the system
  **********************************************************************/
-#define HKLM_PYTHON_PATH "SOFTWARE\\Python\\PythonCore\\" PYTHON_VERSION "\\InstallPath"
+#define HKEY_PYTHON_PATH "SOFTWARE\\Python\\PythonCore\\" PYTHON_VERSION "\\InstallPath"
 
 static std::string getPythonExePath(void)
 {
@@ -71,11 +71,15 @@ static std::string getPythonExePath(void)
 
     std::string errorMsg(
         "Failed to find amd64 python.exe:\n"
-        "[HKLM] " HKLM_PYTHON_PATH "\n");
+        "[HKLM] " HKEY_PYTHON_PATH "\n"
+        "[HKCU] " HKEY_PYTHON_PATH "\n");
 
     for (const auto &path : {
-        //prefer python found in the registry key
-        getPythonExePathRegistry(HKLM_PYTHON_PATH),
+        //prefer python found in the registry key (all users)
+        getPythonExePathRegistry(HKEY_LOCAL_MACHINE, HKEY_PYTHON_PATH),
+
+        //prefer python found in the registry key (local user)
+        getPythonExePathRegistry(HKEY_CURRENT_USER, HKEY_PYTHON_PATH),
 
         //next check the default program files install path
         getPythonEnvInstallPath("PROGRAMFILES", "\\Python" PYVER_NO_DOTS "\\python.exe"),
